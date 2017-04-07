@@ -21,7 +21,9 @@ int main() {
 	wdt_disable();
 
 	for (;;) {
-
+		motors(200,200);
+		get_sensor(SENSOR_FD);
+		
 		_delay_ms(10);
 	}
 
