@@ -57,22 +57,22 @@ int main() {
 
 	uint16_t FE = 0, FD = 0, LE = 0, LD = 0;	// these variables will store the values that the sensors read
 	int8_t sent = 1; 							// this is the turning direction
-    uint16_t VE = 0, VD = 0;                    // these are the motor speeds
+    	uint16_t VE = 0, VD = 0;                    // these are the motor speeds
 
-	while (true) {
+	while (1) {
 		// read sensor values
 		update_distance();
 
-        if (distance[dFE] < thresF || distance[dFC] < thresF || distance[dFD] < thresF) {  // if any front sensor sees something
-            // proportional control
-            } else {										// if they don't, then set turning direction as
-                if (distance[dLE] < thresL) sent = -1;		// left, if the last sensor to see something is in the left 
-                else if (distance[dLD] < thresL) sent = 1;	// right, if the last sensor to see something is in the right
-                
-                VE = sent*turning_speed; VD = -sent*turning_speed; //overwrite motor speeds
-            }
-        }
-        motors(VE, VD); //actually move the motors
-        _delay_ms(10);
+		if (distance[dFE] < thresF || distance[dFC] < thresF || distance[dFD] < thresF) {  // if any front sensor sees something
+		    // proportional control
+		} else {										// if they don't, then set turning direction as
+			if (distance[dLE] < thresL) sent = -1;		// left, if the last sensor to see something is in the left 
+			else if (distance[dLD] < thresL) sent = 1;	// right, if the last sensor to see something is in the right
+
+			VE = sent*turning_speed; VD = -sent*turning_speed; //overwrite motor speeds
+		}
+		motors(VE, VD); //actually move the motors
+		_delay_ms(10);
+	}
 	return 0;
 }
