@@ -31,6 +31,7 @@ int main() {
 	wdt_reset();
 	wdt_disable();
 
+<<<<<<< HEAD
 	uint16_t FE = 0, FD = 0, LE = 0, LD = 0;	// these variables will store the values that the sensors read
 	int8_t dir = 1; 							// this is the turning direction
 
@@ -46,6 +47,13 @@ int main() {
 			else if (FD < thresL || LD < thresL) dir = -1;	// left, if the last sensor to see something is in the right
 			motors(dir*turning_speed, -dir*turning_speed);	// (here's the actual turning)
 		}
+=======
+	for (;;) {
+		if (get_sensor(SENSOR_FD) < 500)
+			motors(255, 255);
+		else
+			motors(-100, -100);
+>>>>>>> upstream/master
 
 		_delay_ms(10);
 	}
