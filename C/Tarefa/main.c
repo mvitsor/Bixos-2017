@@ -34,7 +34,7 @@ int main() {
 	uint16_t FE = 0, FD = 0, LE = 0, LD = 0;	// these variables will store the values that the sensors read
 	int8_t dir = 1; 							// this is the turning direction
 
-	while (1) {
+	while (true) {
 		
 		// read sensor values
 		FE = get_sensor(SENSOR_FE), FD = get_sensor(SENSOR_FD), LE = get_sensor(SENSOR_LE), LD = get_sensor(SENSOR_LD);
