@@ -19,7 +19,7 @@
  *    vai para frente com controle proporcional
  * 2. se não estiver vendo o adv com os 3 sensores frontais, gira para o último lado (sent) onde viu o adv
  * 3. atualiza a variável sent sempre q vir o adv com algum sensor
- * 4. se encontrar linha com os sensores frontais, 
+ * 4. se encontrar linha com os sensores frontais, dar um pouco de r�
 */
 
 #include <avr/io.h>
@@ -46,7 +46,23 @@
 #define thresL 400
 #define attack_speed 255
 #define turning_speed 200
+#define kp 0.2
 
+void filter_motors(int left, int right){
+	if (left > 255){
+		left = 255;
+	}
+	else if (left < -255){
+		left = -255;
+	}
+	if (right > 255){
+		right = 255;
+	}
+	else if (right < -255){
+		right = -255;
+	}
+	motors(left, right);
+}
 
 int main() {
 	sensors_init();
@@ -57,14 +73,25 @@ int main() {
 
 	uint16_t FE = 0, FD = 0, LE = 0, LD = 0;	// these variables will store the values that the sensors read
 	int8_t sent = 1; 							// this is the turning direction
-    	uint16_t VE = 0, VD = 0;                    // these are the motor speeds
+    uint16_t VE = 0, VD = 0;                    // these are the motor speeds
+    int error;
 
 	while (1) {
 		// read sensor values
 		update_distance();
+		update_line();
 
 		if (distance[dFE] < thresF || distance[dFC] < thresF || distance[dFD] < thresF) {  // if any front sensor sees something
-		    // proportional control
+			while(line[lFD] < thresL && line[lFD] < thresL){         //Execute proportional until the border of the dojo
+				// proportional control
+				update_distance();
+				update_line();
+				error = distance[dFE] - distance[dFD];
+				filterMotors(attack_speed - kp*error, attack_speed + kp*error);
+				_delay_ms(10);
+			}
+			motors(-255, -255);  //reached border of the dojo. Stay away from it
+			_delay_ms(400);
 		} else {										// if they don't, then set turning direction as
 			if (distance[dLE] < thresL) sent = -1;		// left, if the last sensor to see something is in the left 
 			else if (distance[dLD] < thresL) sent = 1;	// right, if the last sensor to see something is in the right
