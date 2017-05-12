@@ -49,6 +49,7 @@
 #define eixoY 1
 #define eixoZ 2
 
+
 #define TRUE  1
 #define FALSE 0
 
@@ -56,8 +57,9 @@
 
 // Tweak constants for maximum performance
 #define thresFron 256 // threshold frontal
-#define thresLat 400 // threshold lateral
+#define thresLat  256 // threshold lateral
 #define thresLine 800 // threshold dos sensores de linha
+#define thresAccel 5;
 #define attack_speed 255
 #define turning_speed 200
 #define kp 0.2
@@ -78,7 +80,7 @@ int main() {
     uint16_t VE = 0, VD = 0;                    // these are the motor speeds
     int error;
 	int iteracoes = 5; 
-	int perdeu_colisao ;
+	int perdeu_colisao = FALSE ;
 	int deltaT;
 	int limiteT;
 
@@ -92,12 +94,37 @@ int main() {
 		while ( line[lFD] < thresLine && line[lFE] < thresLine &&  /*enquanto nao estiver pisando em linhas*/
 		        line[lTD] < thresLine && line[lTE] < thresLine ){
 
-			if ( perdeu_colisao == FALSE)                 
-				perdeu_colisao = verifica_colisao();
-			if ( perdeu_colisao == TRUE && iteracoes < 5) { /*caso tenha colidido com o adversario e 
-															    apos isso esteja indo pra trás */						 
+			if ( perdeu_colisao == FALSE){ /*caso nao tenha perdido uma colisao*/
 
-				/* da ré girando no sentido sorteado (o sorteio de sentido está no 'else' deste 'if') */
+				erro = distance[dFE] - distance [dFD];								/* acelera pra frente */
+				filter_motors(attack_speed - kp*error, attack_speed + kp*error);   /*de forma proporcional */
+																																					
+				update_distance();
+				update_line();
+				_delay_ms(10);
+				update_acell();
+
+				perdeu_colisao = verifica_colisao(); /*verifica se perdeu uma colisao*/
+				if ( perdeu_colisao == TRUE )   /* caso tenha perdido*/
+				{
+					iteracoes = 0;
+
+					if ( distance[dLE] > thresLat || distance[dLD] > thresLat ){ 
+						if ( distance[dLE] > distance[dLD]) 
+							sent = -1;
+						else 
+							sent = 1;
+					}
+					else{
+						sent = get_tick() % 2;  /*sorteia um sentido para dar ré: 1 direita, 0 esquerda */
+						if ( sent != 1) 		
+							sent = -1;
+					}
+				}  
+			}
+			else if (  iteracoes < 5) { /*caso tenha perdido uma colisao e ainda nao tenha feito 5 iterações*/
+																		
+				/* da ré girando no sentido sorteado (o sorteio de sentido está no 'if' deste 'else') */
 				filter_Motors(-attack_speed -sent*128, -attack_speed + sent*128);/*esse valor 128 eh arbitrario*/
 
 				/*a ideia eh dar ré por 50 ms mas se colocarmos aqui um delay muito grande, o robô poderá pisar 
@@ -110,31 +137,28 @@ int main() {
 				update_line();
 				update_acell();
 			} 
-			else { 
-				iteracoes = 0;
-				sent = get_tick() % 2;  /*sorteia um sentido caso precise dar ré: 1 direita, 0 esquerda */
-				if ( sent != 1) 		
-					sent = -1;         
-
-				erro = distance[dFE] - distance [dFD];
-				filter_motors(attack_speed - kp*error, attack_speed + kp*error); /* acelera pra frente 
-																					de forma proporcional */																
-				update_distance();
-				update_line();
-				_delay_ms(10);
-				update_acell();	
-			}
 		}
+
+		perdeu_colisao = FALSE;
+
 		while ( line[lFD] > thresLine || line[lFE] > thresLine ||  /*enquanto estiver pisando em alguma linha*/
 		        line[lTD] > thresLine || line[lTE] > thresLine)  {
 
 			limiteT = 135; /*tempo necessario para girar 135 graus( ainda nao sabemo quanto eh) */
 
 			if ( line[lFE] > thresLine && line[lFD] > thresLine){ /*se os dois frontais estiverem na linha*/
-				sent = get_tick() % 2;   /*sorteia um sentido: 1 direita(Horário), 0 esquerda (Anti-Horário)*/
-				if ( sent != 1) 
-					sent = -1;
-				limiteT = 180; /*muda o limite de tempo para o tempo necessario para girar 180 graus*/
+				if ( distance[dLE] > thresLat || distance[dLD] > thresLat ){   
+						if ( distance[dLE] > distance[dLD]) 
+							sent = -1;
+						else 
+							sent = 1;
+					}
+					else{
+						sent = get_tick() % 2;/*sorteia um sentido: 1 direita(Horário), 0 esquerda (Anti-Horário)*/
+						if ( sent != 1) 		
+							sent = -1;
+						limiteT = 180; /*muda o limite de tempo para o tempo necessario para girar 180 graus*/
+					}
 			}
 			else if ( line[lFE] > thresLine ) /*se apenas o frontal esquerdo estiver na linha*/
 				sent = 1;
@@ -142,7 +166,7 @@ int main() {
 				sent = -1;
 				
 			deltaT = 0;
-			while ( (distance[dFE] < thresF || distance[dFC] < thresF || distance[dFD] < thresF )
+			while ( (distance[dFE] < thresF && distance[dFC] < thresF && distance[dFD] < thresF )
 					&& deltaT < limiteT ){  /*enquanto nao avistar o adversario e ainda estiver no movimento de giro*/
 		
 				VE = sent*turning_speed; VD = -sent*turning_speed; /*gira no sentido definido*/
@@ -153,13 +177,13 @@ int main() {
 				_delay_ms(10);
 				deltaT += 10; /*contabiliza a quanto tempo está girando*/
 			} 
+			/*quando acabar de girar ou avistar o adversario, acelera proporcionalmente*/
 			erro = distance[dFE] - distance [dFD]; 
 			filter_motors(attack_speed - kp*error, attack_speed + kp*error);	
 			update_distance();
 			update_line();
 			update_acell();
 			_delay_ms(10);
-			iteracoes = 5;
 		}
 
 	return 0;
