@@ -67,8 +67,7 @@ int main() {
 	int8_t sent = 1; 							// this is the turning direction
     uint16_t VE = 0, VD = 0;                    // these are the motor speeds
     int error;
-	int progrado = 0; /*vale 1 quando a tentativa de movimento eh prógrada e -1 quando eh retrógrada*/
-	int iteracoes = 0; 
+	int iteracoes = 5; 
 	int giroscopioZ;
 	int anguloCurva;
 
@@ -80,22 +79,16 @@ int main() {
 		while ( line[lFD] < thresLine && line[lFE] < thresLine &&  /*enquanto nao estiver pisando em linhas*/
 		        line[lTD] < thresLine && line[lTE] < thresLine ){
 			
-			if ( accel[2] < 0 &&  progrado == 1 && iteracoes <5 ) { /*caso esteja tentando ir pra frente e indo pra tras*/
+			if ( accel[2] < 0 &&  iteracoes <5 ) { /*caso esteja tentando ir pra frente e indo pra tras*/
 
-				sent = get_tick() % 2;  /*sorteia um sentido: 1 direita(Anti-Horário), 0 esquerda (Horário)*/
-				if ( sent != 1) 
-					sent = -1;
 				
-				/* da ré girando nesse sentido */
+				/* da ré girando no sentido sorteado  */
 				filterMotors(-attack_speed -sent*128, -attack_speed + sent*128);/*esse valor 128 eh arbitario*/
 
 				/*a ideia eh dar ré por 50 ms mas se colocarmos aqui um delay muito grande, o robô poderá pisar 
 				  na linha e a isso nao estarah sendo verificado, portanto usaremo 10ms durante 5 iteracoes*/
 				_delay_ms(10);
 				iteracoes += 1;
-
-				if ( iteracoes == 5)
-					progrado = 0;
 				
 				update_distance();
 				update_line();
@@ -103,10 +96,13 @@ int main() {
 			} 
 			else { 
 				iteracoes = 0;
+				sent = get_tick() % 2;  /*sorteia um sentido: 1 direita, 0 esquerda */
+				if ( sent != 1) 		
+					sent = -1;         
+
 				erro = distance[dFE] - distance [dFD];
 				filterfilterMotors(attack_speed - kp*error, attack_speed + kp*error); /* acelera pra frente 
-																					de forma proporcional */
-				progrado = 1; /*contabiliza q estah tentando ir pra frente*/																
+																					de forma proporcional */																
 				update_distance();
 				update_line();
 				_delay_ms(10);
@@ -146,6 +142,7 @@ int main() {
 			update_line();
 			update_acell();
 			_delay_ms(10);
+			iteracoes = 5;
 		}
 
 	return 0;
