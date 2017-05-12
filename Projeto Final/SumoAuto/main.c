@@ -68,6 +68,7 @@
 #define kp 0.2
 #define tempo_para_girar_180o 180
 #define tempo_para_girar_135o 135
+#define vel_esquiva 128
 
 void filter_motors(int left, int right);
 int perdeu_colisao();
@@ -102,7 +103,7 @@ int main() {
 					filter_motors(attack_speed - kp*error, attack_speed + kp*error);   /*de forma proporcional */
 				} else
 					filter_motors(attack_speed, attack_speed);   /*de forma proporcional */
-				_delay_ms(10);
+				_delay_ms(1);
 				perdeu_col = perdeu_colisao(); /*verifica se perdeu uma colisao*/
 			}
 			if ( perdeu_col == TRUE )   /* caso tenha perdido*/
@@ -118,12 +119,12 @@ int main() {
 					}
 				}
 				/* da ré girando no sentido sorteado (o sorteio de sentido está no 'if' deste 'else') */
-				filter_Motors(-attack_speed - sent*128, -attack_speed + sent*128); /*esse valor 128 eh arbitrario*/
+				filter_Motors(-attack_speed - sent*vel_esquiva, -attack_speed + sent*vel_esquiva);
 				/*a ideia eh dar ré por 50 ms mas se colocarmos aqui um delay muito grande, o robô poderá pisar 
-				  na linha e a isso nao estarah sendo verificado, portanto usaremo 10ms durante 5 iteracoes*/
-				_delay_ms(10);
+				  na linha e a isso nao estarah sendo verificado, portanto usaremo 1ms durante 50 iteracoes*/
+				_delay_ms(1);
 				iteracoes += 1;
-				if (iteracoes == 5){
+				if (iteracoes == 50){
 					perdeu_col = FALSE;
 					iteracoes = 0;
 				}
@@ -154,24 +155,14 @@ int main() {
 		else if ( line[lFD] > thresLine ) /*se apenas o frontal direito estiver na linha*/
 			sent = -1;
 			
-		deltaT = 0;
-		while ( (distance[dFE] < thresF && distance[dFC] < thresF && distance[dFD] < thresF) && deltaT < limiteT ){  
+		Tinicial = get_tick();
+		while ( (distance[dFE] < thresF && distance[dFC] < thresF && distance[dFD] < thresF) && get_tick() < (Tinicial+limiteT) ){  
 			//enquanto nao avistar o adversario e ainda estiver no movimento de giro
 			VE = sent*turning_speed; VD = -sent*turning_speed; /*gira no sentido definido*/
 			motors(VE, VD); 
 			update_all();
-			_delay_ms(10);
-			deltaT += 10; /*contabiliza a quanto tempo está girando*/
 		} 
-		/*quando acabar de girar ou avistar o adversario, acelera proporcionalmente*/
-		erro = distance[dFE] - distance [dFD]; 
-		filter_motors(attack_speed - kp*error, attack_speed + kp*error);	
-		update_distance();
-		update_line();
-		update_accel();
-		_delay_ms(10);
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 	}
 	return 0;
 }
@@ -193,19 +184,19 @@ void filter_motors(int left, int right){
 }
 
 int perdeu_colisao(){
-	int accel;
+	int accelhue;
 	int new_accel;
 	int perdeu = FALSE;
 
-	atualiza_accel();
+	update_accel();
 	
 	if ( accel[eixoX] <  -thresAccel){ //levou impacto frontal
-		accel = accel[eixoX];
+		accelhue = accel[eixoX];
 		_delay_ms(50);
-		atualiza_accel();
+		update_accel();
 		new_accel = accel[eixoX] //acel um pouco dps do impacto (negativa se está sendo empurrado pra trás)
+		if (new_accel*accelhue > 0) perdeu = TRUE; //neg*neg=pos
 	}
-	if (new_accel*accel > 0) perdeu = TRUE; //neg*neg=pos
 
 	return perdeu;
 }
