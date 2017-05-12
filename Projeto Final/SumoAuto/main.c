@@ -19,7 +19,7 @@
  *    vai para frente com controle proporcional
  * 2. se não estiver vendo o adv com os 3 sensores frontais, gira para o último lado (sent) onde viu o adv
  * 3. atualiza a variável sent sempre q vir o adv com algum sensor
- * 4. se encontrar linha com os sensores frontais, dar um pouco de r�
+ * 4. se encontrar linha com os sensores frontais, dar um pouco de r�
 */
 
 #include <avr/io.h>
@@ -40,6 +40,9 @@
 #define lFD 1 //sensor de linha frontal direito
 #define lTD 2 //sensor de linha traseiro direito
 #define lTE 3 //sensor de linha traseiro esquerdo
+#define eixoX 0
+#define eixoY 1
+#define eixoZ 2
 
 // Tweak constants for maximum performance
 #define thresF 500
@@ -81,8 +84,8 @@ int main() {
 		update_distance();
 		update_line();
 
-		if (distance[dFE] < thresF || distance[dFC] < thresF || distance[dFD] < thresF) {  // if any front sensor sees something
-			while(line[lFD] < thresL && line[lFD] < thresL){         //Execute proportional until the border of the dojo
+		if (distance[dFE] > thresF || distance[dFC] > thresF || distance[dFD] > thresF) {  // if any front sensor sees something
+			while(line[lFD] < thresL && line[lFE] < thresL){         //Execute proportional until the border of the dojo
 				// proportional control
 				update_distance();
 				update_line();
